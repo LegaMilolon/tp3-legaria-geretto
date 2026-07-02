@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Demo Mail — Simulación de Email (Clase) · SaludTotal</title>
+  <style>
+    :root{
+      --bg:#f6f8fb;
+      --panel:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --accent:#059669;
+      --chip:#ecfdf5;
+      --chipBorder:#bbf7d0;
+      --chipText:#047857;
+      --shadow: 0 8px 24px rgba(17,24,39,.08);
+      --radius:18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--ink);
+      background:linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+    }
+    .app{
+      display:grid;
+      grid-template-columns: 280px 360px 1fr;
+      height:100vh;
+      gap:14px;
+      padding:14px;
+    }
+    .topbar{
+      grid-column: 1 / -1;
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:10px 14px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .brand{display:flex; align-items:center; gap:10px; font-weight:700;}
+    .logo{
+      width:30px; height:30px; border-radius:10px;
+      background: radial-gradient(circle at 30% 30%, #e9d5ff, var(--accent));
+      box-shadow: 0 10px 24px rgba(0,0,0,.12);
+    }
+    .search{
+      flex:1;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      background:#f3f4f6;
+      border-radius:999px;
+      color:var(--muted);
+      border:1px solid #eef2f7;
+    }
+    .search span{font-size:14px}
+    .pill{
+      margin-left:auto;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .badge{
+      padding:6px 10px;
+      border-radius:999px;
+      background:var(--chip);
+      color:var(--chipText);
+      border:1px solid var(--chipBorder);
+      font-weight:700;
+    }
+
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      min-height:0;
+    }
+    .sidebar{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    .compose{
+      background:var(--accent);
+      color:#fff;
+      border:none;
+      padding:12px 14px;
+      border-radius:14px;
+      font-weight:800;
+      cursor:default;
+      box-shadow: 0 10px 24px rgba(0,0,0,.12);
+      text-align:left;
+    }
+    .nav{display:flex; flex-direction:column; gap:6px; margin-top:6px;}
+    .nav a{
+      text-decoration:none;
+      color:var(--ink);
+      padding:10px 12px;
+      border-radius:12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      border:1px solid transparent;
+      user-select:none;
+    }
+    .nav a.active{
+      background:#f8fafc;
+      border-color:var(--chipBorder);
+      color:var(--accent);
+      font-weight:800;
+    }
+    .nav small{color:var(--muted); font-weight:700}
+    .section-title{
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      font-weight:800;
+    }
+    .labels{display:flex; flex-wrap:wrap; gap:8px;}
+    .label{
+      padding:8px 10px;
+      border-radius:999px;
+      background:#f3f4f6;
+      border:1px solid var(--border);
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    .list-header{
+      padding:14px 16px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+    }
+    .list-header h2{margin:0; font-size:16px;}
+    .list-header .meta{color:var(--muted); font-size:12px; font-family:var(--mono);}
+    .email-list{overflow:auto; height:calc(100% - 54px);}
+    .mail-item{
+      padding:12px 16px;
+      border-bottom:1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:10px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .mail-item.active{
+      background:#f8fafc;
+      border-left:4px solid var(--accent);
+      padding-left:12px;
+    }
+    .mail-item .from{font-weight:900; font-size:13px;}
+    .mail-item .subject{font-size:13px; margin-top:2px;}
+    .mail-item .snippet{
+      margin-top:3px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+    .mail-item .time{font-size:12px; color:var(--muted); font-family:var(--mono); align-self:start; white-space:nowrap;}
+
+    .reader{display:flex; flex-direction:column; min-height:0;}
+    .reader-top{
+      padding:16px 18px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .subject-line{display:flex; align-items:flex-start; justify-content:space-between; gap:12px;}
+    .subject-line h1{margin:0; font-size:20px; line-height:1.1;}
+    .tools{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
+    button.tool{
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    button.tool.primary{
+      border-color:var(--chipBorder);
+      color:var(--accent);
+      background:#fbfdff;
+    }
+    button.tool:active{transform:translateY(1px)}
+
+    .fromline{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .avatar{
+      width:34px; height:34px; border-radius:12px;
+      background: radial-gradient(circle at 30% 30%, #fde68a, #f59e0b);
+      display:inline-block;
+      margin-right:10px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.10);
+      flex: 0 0 auto;
+    }
+    .fromleft{display:flex; align-items:center; gap:10px; min-width:0;}
+    .fromtext{min-width:0;}
+    .fromtext b{color:var(--ink)}
+    .fromtext .addr{font-family:var(--mono); font-size:12px; color:var(--muted);}
+    .reader-body{
+      padding:18px;
+      overflow:auto;
+      line-height:1.5;
+      font-size:14px;
+      background: linear-gradient(180deg, #ffffff 0%, #ffffff 60%, #fbfdff 100%);
+    }
+    .callout{
+      padding:14px 14px;
+      border:1px solid var(--chipBorder);
+      background:#faf5ff;
+      border-radius:16px;
+      margin:12px 0 16px;
+    }
+    .callout .tag{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#efe6ff;
+      color:var(--accent);
+      font-weight:900;
+      font-size:12px;
+      margin-bottom:8px;
+    }
+    .quote{
+      border-left:4px solid var(--chipBorder);
+      padding-left:12px;
+      color:#374151;
+      margin:10px 0;
+      white-space:pre-wrap;
+    }
+    .footer-note{margin-top:14px; color:var(--muted); font-size:12px; font-family:var(--mono);}
+
+    /* Reply composer */
+    .overlay{
+      position:fixed; inset:0;
+      background:rgba(17,24,39,.45);
+      display:none;
+      align-items:flex-end;
+      justify-content:center;
+      padding:16px;
+      z-index:50;
+    }
+    .overlay.show{display:flex;}
+    .composer{
+      width:min(920px, 100%);
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:22px;
+      box-shadow: 0 22px 60px rgba(0,0,0,.24);
+      overflow:hidden;
+    }
+    .composer-head{
+      padding:12px 14px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background:linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    }
+    .composer-head .title{font-weight:900;}
+    .composer-actions{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
+    .btn{
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:#fff;
+      font-weight:900;
+      cursor:pointer;
+      color:var(--muted);
+    }
+    .btn.primary{border-color:var(--chipBorder); color:var(--accent); background:#fbfdff;}
+    .btn.danger{border-color:#fee2e2; color:#b91c1c; background:#fff;}
+    .composer-body{padding:14px; display:grid; gap:10px;}
+    .field{display:grid; gap:6px;}
+    .field label{font-size:12px; color:var(--muted); font-weight:900; letter-spacing:.04em; text-transform:uppercase;}
+    .field input, .field textarea{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:10px 12px;
+      font-family:var(--sans);
+      font-size:14px;
+      outline:none;
+    }
+    .field textarea{min-height:180px; resize:vertical;}
+    .hint{font-size:12px; color:var(--muted); font-family:var(--mono);}
+
+    /* Sent area (inline) */
+    .sent-wrap{
+      margin-top:16px;
+      padding:14px;
+      border:1px dashed var(--chipBorder);
+      border-radius:16px;
+      background:#fbfdff;
+    }
+    .sent-wrap h3{margin:0 0 8px; font-size:14px;}
+    .sent-meta{color:var(--muted); font-size:12px; font-family:var(--mono); margin-bottom:8px;}
+    .sent-body{white-space:pre-wrap; background:#fff; border:1px solid var(--border); padding:12px; border-radius:14px;}
+
+    /* Reader for sent folder */
+    .kv{
+      font-family:var(--mono);
+      font-size:12px;
+      color:var(--muted);
+      margin-top:4px;
+    }
+    .empty{
+      padding:14px;
+      border:1px dashed var(--chipBorder);
+      border-radius:16px;
+      background:#fbfdff;
+      color:var(--muted);
+      font-weight:800;
+    }
+
+    .toast{
+      position:fixed;
+      right:16px;
+      bottom:16px;
+      background:#111827;
+      color:#fff;
+      padding:12px 14px;
+      border-radius:14px;
+      font-weight:800;
+      box-shadow: 0 12px 36px rgba(0,0,0,.26);
+      opacity:0;
+      transform: translateY(8px);
+      transition: all .18s ease;
+      pointer-events:none;
+      z-index:60;
+    }
+    .toast.show{opacity:1; transform: translateY(0);}
+  </style>
+</head>
+<body>
+  <div class="app" id="appRoot">
+    <div class="topbar">
+      <div class="brand"><div class="logo"></div>Demo Mail</div>
+      <div class="search"><span>🔎 Buscar en correos…</span></div>
+      <div class="pill">
+        <span class="badge">Simulación de clase</span>
+        <span>Cuenta: aula@escuela.edu</span>
+      </div>
+    </div>
+
+    <aside class="panel sidebar">
+      <button class="compose">✉️ Redactar</button>
+      <div class="nav">
+        <a class="active" href="#" id="navInbox"><span>📥 Bandeja de entrada</span><small>12</small></a>
+        <a href="#" id="navStar"><span>⭐ Destacados</span><small>2</small></a>
+        <a href="#" id="navSnooze"><span>🕒 Pospuestos</span><small>0</small></a>
+        <a href="#" id="navSent"><span>📤 Enviados</span><small id="sentCount">9</small></a>
+        <a href="#" id="navDraft"><span>📝 Borradores</span><small>1</small></a>
+        <a href="#" id="navTrash"><span>🗑️ Papelera</span><small>0</small></a>
+      </div>
+      <div class="section-title">Etiquetas</div>
+      <div class="labels">
+        <span class="label">Clientes</span>
+        <span class="label">Requerimientos</span>
+        <span class="label">Urgente</span>
+        <span class="label">Backlog</span>
+      </div>
+    </aside>
+
+    <section class="panel">
+      <div class="list-header">
+        <h2 id="folderTitle">Bandeja de entrada</h2>
+        <div class="meta">21 feb 2026 · 11:02</div>
+      </div>
+
+      <!-- INBOX LIST -->
+      <div class="email-list" id="inboxList">
+        <div class="mail-item" data-kind="inbox" id="inboxItem0">
+          <div>
+            <div class="from">Notificaciones</div>
+            <div class="subject">Resumen semanal</div>
+            <div class="snippet">Tenés 3 tareas pendientes y 2 reuniones esta semana…</div>
+          </div>
+          <div class="time">10:15</div>
+        </div>
+
+        <div class="mail-item active" data-kind="inbox" id="inboxItem1">
+          <div>
+            <div class="from">Dirección SaludTotal</div>
+            <div class="subject"><b>Solicitud: Historia Clínica Unificada “SaludTotal”</b></div>
+            <div class="snippet">“El médico tiene que poder escribir la evolución del paciente en la tablet. Lo más importante…”</div>
+          </div>
+          <div class="time">10:58</div>
+        </div>
+
+        <div class="mail-item" data-kind="inbox" id="inboxItem2">
+          <div>
+            <div class="from">Contabilidad</div>
+            <div class="subject">Cierre de caja semanal</div>
+            <div class="snippet">Recordatorio: enviar planilla de caja antes de las 18hs…</div>
+          </div>
+          <div class="time">Ayer</div>
+        </div>
+
+        <div class="mail-item" data-kind="inbox" id="inboxItem3">
+          <div>
+            <div class="from">WhatsApp Business</div>
+            <div class="subject">Actualización de políticas</div>
+            <div class="snippet">Se actualizaron los límites de envíos y plantillas aprobadas…</div>
+          </div>
+          <div class="time">Ayer</div>
+        </div>
+      </div>
+
+      <!-- SENT LIST -->
+      <div class="email-list" id="sentList" style="display:none">
+        <div class="mail-item active" data-kind="sent" id="sentPlaceholder">
+          <div>
+            <div class="from">Enviados</div>
+            <div class="subject"><b>Todavía no hay respuestas enviadas</b></div>
+            <div class="snippet">Cuando uses “Enviar” o “Descargar HTML con respuesta”, aparecerá acá.</div>
+          </div>
+          <div class="time">—</div>
+        </div>
+        <div id="sentListContainer"></div>
+      </div>
+    </section>
+
+    <main class="panel reader">
+      <div class="reader-top">
+        <div class="subject-line">
+          <h1 id="readerTitle">Solicitud: Historia Clínica Unificada “SaludTotal”</h1>
+          <div class="tools">
+            <button class="tool primary" id="btnReply">Responder</button>
+            <button class="tool" id="btnForward">Reenviar</button>
+            <button class="tool" id="btnMore">Más</button>
+          </div>
+        </div>
+
+        <div class="fromline" id="readerFromLine">
+          <div class="fromleft">
+            <span class="avatar"></span>
+            <div class="fromtext">
+              <div><b id="readerFromName">Dirección SaludTotal</b> <span class="addr">&lt;<span id="readerFromAddr">direccion@saludtotal.local</span>&gt;</span></div>
+              <div>Para: <span class="addr">aula@escuela.edu</span> · CC: <span class="addr">profe@escuela.edu</span></div>
+            </div>
+          </div>
+          <div class="addr" id="readerDate">21 feb 2026 · 10:58</div>
+        </div>
+      </div>
+
+      <div class="reader-body">
+        <!-- INBOX READER -->
+        <div id="inboxReader">
+          <div class="callout">
+            <div class="tag">ESCENARIO 10</div>
+            <div><b>Historia Clínica Unificada “SaludTotal”</b></div>
+            <div style="margin-top:6px;color:#4b5563">
+              Cliente: Director de una red de clínicas.
+            </div>
+          </div>
+
+          <div>Hola equipo,</div>
+          <div class="quote">El médico tiene que poder escribir la evolución del paciente en la tablet.
+
+Lo más importante es la confidencialidad: si se filtra un dato de un paciente famoso, nos demandan y cerramos.
+
+Quiero que el sistema transcriba la voz del médico a texto automáticamente, pero que entienda jerga médica compleja y elimine los insultos si el médico está enojado.
+
+El sistema debe funcionar aunque se corte internet y la luz en el hospital, y sincronizar todo cuando vuelva.
+
+También quiero que la app le avise al paciente si tiene riesgo de infarto midiendo cómo tipea en el teclado (análisis biométrico predictivo).</div>
+
+          <div>Saludos,</div>
+          <div><b>— Dirección SaludTotal</b></div>
+
+          <div id="sentArea" class="sent-wrap" style="display:none">
+            <h3>✅ Respuesta enviada (guardada)</h3>
+            <div class="sent-meta" id="sentMeta"></div>
+            <div class="sent-body" id="sentBody"></div>
+          </div>
+
+          <div class="footer-note">
+            Nota: esta interfaz es una maqueta genérica para uso educativo (no corresponde a ningún servicio real).
+          </div>
+        </div>
+
+        <!-- SENT READER -->
+        <div id="sentReader" style="display:none">
+          <div class="callout">
+            <div class="tag">ENVIADO</div>
+            <div><b id="sentViewSubject">Re: Solicitud: Historia Clínica Unificada “SaludTotal”</b></div>
+            <div class="kv" id="sentViewMeta">Para: direccion@saludtotal.local · Enviado: —</div>
+          </div>
+
+          <div style="font-weight:900; margin-bottom:10px">Mensaje</div>
+
+          <div id="sentEmpty" class="empty">
+            Aún no enviaste una respuesta. Usá el botón <b>Responder</b>.
+          </div>
+
+          <div class="sent-body" id="sentViewBody" style="display:none"></div>
+        </div>
+
+        <!-- Este tag se pisa al exportar para que el profe vea la respuesta incluso sin LocalStorage -->
+        <script type="application/json" id="savedReplyJson">{}</script>
+      </div>
+    </main>
+  </div>
+
+  <!-- Reply Composer -->
+  <div class="overlay" id="overlay">
+    <div class="composer" role="dialog" aria-modal="true" aria-label="Editor de respuesta">
+      <div class="composer-head">
+        <div class="title">Responder a: Dirección SaludTotal</div>
+        <div class="composer-actions">
+          <button class="btn danger" id="btnClose">Cerrar</button>
+          <button class="btn" id="btnSaveLocal">Guardar</button>
+          <button class="btn primary" id="btnSend">Enviar</button>
+          <button class="btn primary" id="btnExport">Descargar HTML con respuesta</button>
+        </div>
+      </div>
+      <div class="composer-body">
+        <div class="field">
+          <label>Para</label>
+          <input id="replyTo" value="direccion@saludtotal.local" />
+        </div>
+        <div class="field">
+          <label>Asunto</label>
+          <input id="replySubject" value="Re: Solicitud: Historia Clínica Unificada “SaludTotal”" />
+        </div>
+        <div class="field">
+          <label>Mensaje</label>
+          <textarea id="replyBody" placeholder="Escribí acá tu respuesta al cliente..."></textarea>
+          <div class="hint">Tip: escribí requisitos aclaratorios, preguntas, supuestos y una primera propuesta de alcance.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Guardado ✔</div>
+
+  <script>
+    (function(){
+      const STORAGE_KEY = "demoMail.reply.SaludTotal.v3";
+      const overlay = document.getElementById("overlay");
+      const btnReply = document.getElementById("btnReply");
+      const btnClose = document.getElementById("btnClose");
+      const btnSaveLocal = document.getElementById("btnSaveLocal");
+      const btnSend = document.getElementById("btnSend");
+      const btnExport = document.getElementById("btnExport");
+
+      const replyTo = document.getElementById("replyTo");
+      const replySubject = document.getElementById("replySubject");
+      const replyBody = document.getElementById("replyBody");
+
+      const sentArea = document.getElementById("sentArea");
+      const sentMeta = document.getElementById("sentMeta");
+      const sentBody = document.getElementById("sentBody");
+      const sentCount = document.getElementById("sentCount");
+      const savedReplyJson = document.getElementById("savedReplyJson");
+      const toast = document.getElementById("toast");
+
+      const navInbox = document.getElementById("navInbox");
+      const navSent = document.getElementById("navSent");
+      const folderTitle = document.getElementById("folderTitle");
+      const inboxList = document.getElementById("inboxList");
+      const sentList = document.getElementById("sentList");
+      const sentListContainer = document.getElementById("sentListContainer");
+      const sentPlaceholder = document.getElementById("sentPlaceholder");
+
+      const inboxReader = document.getElementById("inboxReader");
+      const sentReader = document.getElementById("sentReader");
+      const readerTitle = document.getElementById("readerTitle");
+      const readerFromLine = document.getElementById("readerFromLine");
+      const readerFromName = document.getElementById("readerFromName");
+      const readerFromAddr = document.getElementById("readerFromAddr");
+
+      const sentViewSubject = document.getElementById("sentViewSubject");
+      const sentViewMeta = document.getElementById("sentViewMeta");
+      const sentViewBody = document.getElementById("sentViewBody");
+      const sentEmpty = document.getElementById("sentEmpty");
+
+      let toastTimer = null;
+
+      function showToast(text){
+        toast.textContent = text || "Listo ✔";
+        toast.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(()=>toast.classList.remove("show"), 1200);
+      }
+
+      function openComposer(){
+        overlay.classList.add("show");
+        setTimeout(()=>replyBody.focus(), 50);
+      }
+      function closeComposer(){ overlay.classList.remove("show"); }
+
+      function nowStamp(){
+        const d = new Date();
+        const pad = (n)=>String(n).padStart(2,"0");
+        return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      }
+
+      function buildReply(){
+        return {
+          to: replyTo.value.trim(),
+          subject: replySubject.value.trim(),
+          body: replyBody.value,
+          sentAt: nowStamp(),
+          scenario: "ESCENARIO 10",
+          source: "SaludTotal"
+        };
+      }
+
+      function saveLocal(reply){
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(reply));
+      }
+      function loadLocal(){
+        try{
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if(!raw) return null;
+          return JSON.parse(raw);
+        } catch(e) { return null; }
+      }
+
+      function setExportedReplyJson(reply){
+        const safe = JSON.stringify(reply).replace(/</g, "\\u003c");
+        savedReplyJson.textContent = safe;
+      }
+
+      function renderInlineReply(reply){
+        if(!reply || !reply.body) return;
+        sentArea.style.display = "block";
+        sentMeta.textContent = `Para: ${reply.to} · Asunto: ${reply.subject} · Enviado: ${reply.sentAt}`;
+        sentBody.textContent = reply.body;
+      }
+
+      function renderSentReader(reply){
+        if(!reply || !reply.body){
+          sentEmpty.style.display = "block";
+          sentViewBody.style.display = "none";
+          sentViewMeta.textContent = `Para: direccion@saludtotal.local · Enviado: —`;
+          sentViewSubject.textContent = `Re: Solicitud: Historia Clínica Unificada “SaludTotal”`;
+          return;
+        }
+        sentEmpty.style.display = "none";
+        sentViewBody.style.display = "block";
+        sentViewBody.textContent = reply.body;
+        sentViewSubject.textContent = reply.subject;
+        sentViewMeta.textContent = `Para: ${reply.to} · Enviado: ${reply.sentAt}`;
+      }
+
+      function updateSentCount(hasReply){
+        const base = 9;
+        sentCount.textContent = String(base + (hasReply ? 1 : 0));
+      }
+
+      function getSnippet(text){
+        if(!text) return "";
+        const t = text.trim().replace(/\s+/g, " ");
+        return t.length > 80 ? t.slice(0, 80) + "…" : t;
+      }
+
+      function addOrUpdateSentListItem(reply){
+        if(!reply || !reply.body) return;
+
+        // Hide placeholder
+        sentPlaceholder.style.display = "none";
+
+        let item = document.getElementById("sentItemReply");
+        if(!item){
+          item = document.createElement("div");
+          item.className = "mail-item";
+          item.id = "sentItemReply";
+          item.setAttribute("data-kind","sent");
+
+          item.innerHTML = `
+            <div>
+              <div class="from">Vos</div>
+              <div class="subject"><b></b></div>
+              <div class="snippet"></div>
+            </div>
+            <div class="time"></div>
+          `;
+
+          item.addEventListener("click", ()=>{
+            setFolder("sent");
+            setActiveMailItem("sentItemReply");
+          });
+
+          sentListContainer.prepend(item);
+        }
+
+        item.querySelector(".subject b").textContent = reply.subject;
+        item.querySelector(".snippet").textContent = getSnippet(reply.body);
+        item.querySelector(".time").textContent = (reply.sentAt || "—").split(" ")[1] || "—";
+      }
+
+      function setActiveNav(active){
+        [navInbox, navSent].forEach(el=>el.classList.remove("active"));
+        if(active === "sent") navSent.classList.add("active");
+        else navInbox.classList.add("active");
+      }
+
+      function setActiveMailItem(id){
+        document.querySelectorAll(".mail-item").forEach(mi=>mi.classList.remove("active"));
+        const el = document.getElementById(id);
+        if(el) el.classList.add("active");
+      }
+
+      function setFolder(folder){
+        if(folder === "sent"){
+          setActiveNav("sent");
+          folderTitle.textContent = "Enviados";
+          inboxList.style.display = "none";
+          sentList.style.display = "block";
+          inboxReader.style.display = "none";
+          sentReader.style.display = "block";
+
+          readerTitle.textContent = "Enviados";
+          readerFromLine.style.display = "none";
+        } else {
+          setActiveNav("inbox");
+          folderTitle.textContent = "Bandeja de entrada";
+          inboxList.style.display = "block";
+          sentList.style.display = "none";
+          inboxReader.style.display = "block";
+          sentReader.style.display = "none";
+
+          readerTitle.textContent = "Solicitud: Historia Clínica Unificada “SaludTotal”";
+          readerFromLine.style.display = "flex";
+          readerFromName.textContent = "Dirección SaludTotal";
+          readerFromAddr.textContent = "direccion@saludtotal.local";
+          setActiveMailItem("inboxItem1");
+        }
+      }
+
+      navInbox.addEventListener("click", (e)=>{ e.preventDefault(); setFolder("inbox"); });
+      navSent.addEventListener("click", (e)=>{ e.preventDefault(); setFolder("sent"); });
+
+      btnReply.addEventListener("click", openComposer);
+      btnClose.addEventListener("click", closeComposer);
+
+      function commitReply(reply, closeAfter){
+        saveLocal(reply);
+        setExportedReplyJson(reply);
+        renderInlineReply(reply);
+        renderSentReader(reply);
+        addOrUpdateSentListItem(reply);
+        updateSentCount(true);
+        if(closeAfter) closeComposer();
+      }
+
+      btnSaveLocal.addEventListener("click", () => {
+        const reply = buildReply();
+        commitReply(reply, false);
+        showToast("Guardado ✔");
+      });
+
+      btnSend.addEventListener("click", () => {
+        const reply = buildReply();
+        if(!reply.body || reply.body.trim().length === 0){
+          showToast("Escribí un mensaje");
+          replyBody.focus();
+          return;
+        }
+        commitReply(reply, true);
+        showToast("Enviado ✔");
+      });
+
+      btnExport.addEventListener("click", () => {
+        const reply = buildReply();
+        if(!reply.body || reply.body.trim().length === 0){
+          showToast("Escribí un mensaje");
+          replyBody.focus();
+          return;
+        }
+
+        commitReply(reply, false);
+
+        const doctype = "<!doctype html>\n";
+        const html = doctype + document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "mock_email_saludtotal_con_respuesta.html";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        setTimeout(()=>URL.revokeObjectURL(url), 800);
+        showToast("Descargado ✔");
+      });
+
+      const existing = loadLocal();
+      if(existing && existing.body){
+        setExportedReplyJson(existing);
+        renderInlineReply(existing);
+        renderSentReader(existing);
+        addOrUpdateSentListItem(existing);
+        updateSentCount(true);
+      } else {
+        updateSentCount(false);
+        renderSentReader(null);
+      }
+
+      setFolder("inbox");
+    })();
+  </script>
+</body>
+</html>
